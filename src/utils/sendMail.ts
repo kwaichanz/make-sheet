@@ -1,0 +1,110 @@
+import { Response } from "express";
+import nodemailer from "nodemailer";
+import db from "../../db/database";
+import createQR from "./createQR";
+
+export default function sendMail(occasion: string, res: Response) {
+
+    res.json({ message: "forbidden feature" })
+
+    const transporter = nodemailer.createTransport({
+        host: 'Win07-mail.zth.netdesignhost.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: "regis@3dtv-tech.com",
+            pass: "3DPublic+",
+        },
+
+    });
+
+
+    const mailOccasion = occasion === "saminar" ? "saminar" : "party"
+    const mailToSend = async () => {
+        try {
+
+            const unsentUsersCount = await db('users').count('users.id').where(`users.saminar_mail_sent`, '=', 0).then(data => Object.values(JSON.parse(JSON.stringify(data[0]))))
+            console.log('users count', unsentUsersCount)
+
+            const unsentUserIds = await db('users').select('users.id').where('users.saminar_mail_sent', '=', 0).then(data => Object.values(JSON.parse(JSON.stringify(data))).map((item: any) => item.id))
+
+            console.log('unsent user ids :', unsentUserIds)
+
+            console.log('sending email');
+
+
+            function getUserIdToSendMail(i: any) {
+                db("users")
+                    .select("users.id", "users.full_name", "users.email_participant")
+                    // .where(`users.${mailOccasion}_checked`, "=", 0)
+                    // .where(`users.id`, '=', 130).orWhere(`users.id`, '=', 131).orWhere(`users.id`, '=', 132).orWhere(`users.id`, '=', 133).orWhere(`users.id`, '=', 134)
+                    // .where('users.id', '=', i)
+                    .where('users.id', '=', 130)
+                    .then(async (res) => {
+                        console.log('runnig send mail');
+                        const qrLocation = await createQR(res[0].id)
+                        if (qrLocation) {
+
+                            sendMail(res[0], qrLocation)
+                        } else {
+                            sendMail(res[0])
+                        }
+                    })
+                    .catch((err) => console.log("error sending mail :", err))
+            }
+            if (!unsentUserIds) return
+            // for (let i = 130; i <= 134; i++) {
+            //     console.log('preparing mail to user id :', i)
+            //     getUserIdToSendMail(i)
+            // }
+            //for (let i = 1; i <= 5; i++) {
+            //    console.log('preparing mail to user id :', unsentUserIds[i])
+            //    getUserIdToSendMail(unsentUserIds[i])
+            //}
+            getUserIdToSendMail(130)
+            const sendMail = (user: any, qrLocation?: string) => {
+
+                const sendMailOptions = {
+                    // from: "Please present the QR Code at the registration point for the Honda Supplier Conference 2023",
+                    from: "Thanyada 35Line  regis@3dtv-tech.com",
+                    // subject: "Thanyada 35Line",
+                    subject: "Please present the QR Code at the registration pointfor the Honda Supplier Conference 2023",
+                    to: user.email_participant,
+                    // to: "alphezelphaz@gmail.com",
+                    // to: "yoshinatsuz1@gmail.com",
+                    //  to: "superpp555@gmail.com",
+                    //   to: "test-rceeidrnf@srv1.mail-tester.com",
+                    html: `<!DOCTYPE html>\n<html xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" lang=\"en\">\n\n<head>\n\t<title></title>\n\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]-->\n\t<style>\n\t\t* {\n\t\t\tbox-sizing: border-box;\n\t\t}\n\n\t\tbody {\n\t\t\tmargin: 0;\n\t\t\tpadding: 0;\n\t\t}\n\n\t\ta[x-apple-data-detectors] {\n\t\t\tcolor: inherit !important;\n\t\t\ttext-decoration: inherit !important;\n\t\t}\n\n\t\t#MessageViewBody a {\n\t\t\tcolor: inherit;\n\t\t\ttext-decoration: none;\n\t\t}\n\n\t\tp {\n\t\t\tline-height: inherit\n\t\t}\n\n\t\t.desktop_hide,\n\t\t.desktop_hide table {\n\t\t\tmso-hide: all;\n\t\t\tdisplay: none;\n\t\t\tmax-height: 0px;\n\t\t\toverflow: hidden;\n\t\t}\n\n\t\t.image_block img+div {\n\t\t\tdisplay: none;\n\t\t}\n\n\t\t@media (max-width:620px) {\n\t\t\t.desktop_hide table.icons-inner {\n\t\t\t\tdisplay: inline-block !important;\n\t\t\t}\n\n\t\t\t.icons-inner {\n\t\t\t\ttext-align: center;\n\t\t\t}\n\n\t\t\t.icons-inner td {\n\t\t\t\tmargin: 0 auto;\n\t\t\t}\n\n\t\t\t.mobile_hide {\n\t\t\t\tdisplay: none;\n\t\t\t}\n\n\t\t\t.row-content {\n\t\t\t\twidth: 100% !important;\n\t\t\t}\n\n\t\t\t.stack .column {\n\t\t\t\twidth: 100%;\n\t\t\t\tdisplay: block;\n\t\t\t}\n\n\t\t\t.mobile_hide {\n\t\t\t\tmin-height: 0;\n\t\t\t\tmax-height: 0;\n\t\t\t\tmax-width: 0;\n\t\t\t\toverflow: hidden;\n\t\t\t\tfont-size: 0px;\n\t\t\t}\n\n\t\t\t.desktop_hide,\n\t\t\t.desktop_hide table {\n\t\t\t\tdisplay: table !important;\n\t\t\t\tmax-height: none !important;\n\t\t\t}\n\t\t}\n\t</style>\n</head>\n\n<body style=\"background-color: #fff; margin: 0; padding: 0; -webkit-text-size-adjust: none; text-size-adjust: none;\">\n\t<table class=\"nl-container\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #fff;\">\n\t\t<tbody>\n\t\t\t<tr>\n\t\t\t\t<td>\n\t\t\t\t\t<table class=\"row row-1\" align=\"center\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t<tbody>\n\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t<td>\n\t\t\t\t\t\t\t\t\t<table class=\"row-content stack\" align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000; width: 600px; margin: 0 auto;\" width=\"600\">\n\t\t\t\t\t\t\t\t\t\t<tbody>\n\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"column column-1\" width=\"100%\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: top; border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"image_block block-1\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\" style=\"width:100%;padding-right:0px;padding-left:0px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"alignment\" align=\"center\" style=\"line-height:10px\"><img src=\"https://a9e7dfea6d.imgdist.com/public/users/Integrators/BeeProAgency/1101296_1086727/logo.png\" style=\"display: block; height: auto; border: 0; max-width: 240px; width: 100%;\" width=\"240\"></div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"image_block block-2\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\" style=\"width:100%;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"alignment\" align=\"center\" style=\"line-height:10px\"><img src=\"https://a9e7dfea6d.imgdist.com/public/users/Integrators/BeeProAgency/1101296_1086727/editor_images/day_1.png\" style=\"display: block; height: auto; border: 0; max-width: 149px; width: 100%;\" width=\"149\"></div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"image_block block-3\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\" style=\"width:100%;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"alignment\" align=\"center\" style=\"line-height:10px\"><img src=\"https://a9e7dfea6d.imgdist.com/public/users/Integrators/BeeProAgency/1101296_1086727/room.png\" style=\"display: block; height: auto; border: 0; max-width: 331px; width: 100%;\" width=\"331\"></div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"spacer_block block-4\" style=\"height:60px;line-height:60px;font-size:1px;\">&#8202;</div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"paragraph_block block-5\" width=\"100%\" border=\"0\" cellpadding=\"10\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div style=\"color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:20px;font-weight:700;letter-spacing:0px;line-height:150%;text-align:center;mso-line-height-alt:30px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<p style=\"margin: 0;\"> ${user.full_name}</p>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"image_block block-6\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\" style=\"width:100%;padding-right:0px;padding-left:0px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"alignment\" align=\"center\" style=\"line-height:10px\"><img src=\`${qrLocation}\` style=\"display: block; height: auto; border: 0; max-width: 150px; width: 100%;\" width=\"150\"></div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"paragraph_block block-7\" width=\"100%\" border=\"0\" cellpadding=\"10\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div style=\"color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:120%;text-align:center;mso-line-height-alt:19.2px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<p style=\"margin: 0;\">The QR Code has been<br>successfully sent to your email.<br>Please present the QR Code at the registration point<br>for check-in to attend the event.</p>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"spacer_block block-8\" style=\"height:60px;line-height:60px;font-size:1px;\">&#8202;</div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"paragraph_block block-9\" width=\"100%\" border=\"0\" cellpadding=\"10\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div style=\"color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:120%;text-align:left;mso-line-height-alt:19.2px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<p style=\"margin: 0;\">For more information, please contact.<br>Ms. Jenjira Jirawatwathin (Jane)<br>Purchasing & New model Planning dept. (PNP)<br>Thai Honda Co.,Ltd.<br>Tel : 063-2689216&nbsp;<br><br>Email: jenjijir@honda.th.com<br><br>The Berkeley Hotel Pratunam &gt; Location: https://g.co/kgs/kgtcc4</p>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t\t<table class=\"image_block block-10\" width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" role=\"presentation\" style=\"mso-table-lspace: 0pt; mso-table-rspace: 0pt;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<td class=\"pad\" style=\"width:100%;padding-right:0px;padding-left:0px;\">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<div class=\"alignment\" align=\"left\" style=\"line-height:10px\"><img src=\"https://a9e7dfea6d.imgdist.com/public/users/Integrators/BeeProAgency/1101296_1086727/editor_images/unnamed.png\" style=\"display: block; height: auto; border: 0; max-width: 150px; width: 100%;\" width=\"150\" alt=\"qr unnamed\"></div>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t\t\t\t\t</tbody>\n\t\t\t\t\t\t\t\t\t</table>\n\t\t\t\t\t\t\t\t</td>\n\t\t\t\t\t\t\t</tr>\n\t\t\t\t\t\t</tbody>\n\t\t\t\t\t</table>\n\t\t\t\t</td>\n\t\t\t</tr>\n\t\t</tbody>\n\t</table><!-- End -->\n</body>\n\n</html>`
+                }
+
+
+
+
+                transporter.sendMail(sendMailOptions, (error: any, info: any) => {
+                    if (error) {
+                        console.log('unable to send mail', error)
+                    } else {
+                        console.log(`email sent to ${info.accepted} successfully`)
+                        console.log('info :', info)
+                        // console.log(sendMailOptions.html)
+                        res.json(`email sent to ${info.accepted} success`)
+                        updateSentMailUser(user.id)
+                    }
+                })
+            }
+
+            async function updateSentMailUser(userId: any) {
+                await db('users').update('users.saminar_mail_sent', 1).where('users.id', '=', userId).then(res => console.log('update user id:', userId, 'success'))
+            }
+
+        } catch (err) {
+            console.log(err)
+        } finally {
+            console.log('done')
+        }
+    }
+
+    mailToSend()
+
+
+}
